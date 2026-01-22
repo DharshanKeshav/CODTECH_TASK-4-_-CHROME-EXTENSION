@@ -2,7 +2,7 @@
 
 ***CHROME-EXTENSION-FOR-TIME-TRACKING-AND-PRODUCTIVITY-ANALYTICS***
 
-#  Focus Pulse: Time & Productivity Tracker
+#  ⏱️Focus Pulse: Time & Productivity Tracker
 
 ****Focus Pulse is a full-stack productivity tool that combines a Chrome Extension with a local analytics server. It monitors your browsing habits in real-time, categorizing your time into "Productive" work and "Unproductive" distractions , then visualizes that data on a beautiful web dashboard.****
 
