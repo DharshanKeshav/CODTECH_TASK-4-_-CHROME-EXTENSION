@@ -62,5 +62,3 @@ npm start
 
 ****Select the folder containing your manifest.json and extension files.****
 
-
-<img width="750" height="642" alt="Screenshot 2026-01-19 215138" src="https://github.com/user-attachments/assets/dc55ea93-9c15-4cb7-a2cb-18ab1ac6a304" />
