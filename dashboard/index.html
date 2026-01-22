@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FocusPulse - Full Analytics</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #0f172a; /* Solid deep navy for maximum contrast */
+      min-height: 100vh;
+      padding: 20px;
+      color: #ffffff; /* All text defaults to white */
+    }
+
+    .container { max-width: 1200px; margin: 0 auto; }
+
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+      padding: 20px;
+      border-bottom: 1px solid #334155;
+    }
+
+    .header h1 { font-size: 40px; color: #f8fafc; margin-bottom: 5px; }
+    .header p { color: #38bdf8; font-weight: 600; } /* Bright blue subtext */
+
+    /* Stat Boxes */
+    .stats-overview {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .stat-box {
+      background: #1e293b;
+      padding: 20px;
+      border-radius: 12px;
+      border: 1px solid #334155;
+      text-align: center;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      text-transform: uppercase;
+      color: #94a3b8; /* Light blue-grey, very readable */
+      letter-spacing: 1px;
+      margin-bottom: 10px;
+      font-weight: 700;
+    }
+
+    .stat-value {
+      font-family: 'Courier New', monospace;
+      font-size: 32px;
+      font-weight: 800;
+      color: #ffffff;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Charts Section */
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+      gap: 25px;
+      margin-bottom: 30px;
+    }
+
+    .chart-container {
+      background: #1e293b;
+      padding: 20px;
+      border-radius: 12px;
+      border: 1px solid #334155;
+      height: 350px;
+    }
+
+    .chart-title {
+      color: #f8fafc;
+      font-weight: 700;
+      margin-bottom: 15px;
+      text-align: center;
+    }
+
+    /* Table Section */
+    .website-table {
+      background: #1e293b;
+      padding: 20px;
+      border-radius: 12px;
+      border: 1px solid #334155;
+    }
+
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th { color: #38bdf8; text-align: left; padding: 12px; border-bottom: 2px solid #334155; }
+    td { padding: 12px; border-bottom: 1px solid #334155; color: #f1f5f9; }
+
+    .category-badge { padding: 4px 8px; border-radius: 6px; font-weight: bold; color: white; font-size: 11px; }
+    .badge-productive { background: #16a34a; }
+    .badge-unproductive { background: #dc2626; }
+    .badge-neutral { background: #475569; }
+
+    .refresh-btn {
+      position: fixed; bottom: 20px; right: 20px;
+      background: #38bdf8; color: #0f172a;
+      border: none; padding: 12px 24px; border-radius: 30px;
+      font-weight: 800; cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h1>🎯 FocusPulse Analytics</h1>
+    <p>HH:MM:SS REAL-TIME TRACKING</p>
+  </div>
+
+  <div class="stats-overview">
+    <div class="stat-box" style="border-top: 4px solid #16a34a;">
+      <div class="stat-label">Productive</div>
+      <div class="stat-value" id="prod-val">00:00:00</div>
+    </div>
+    <div class="stat-box" style="border-top: 4px solid #dc2626;">
+      <div class="stat-label">Unproductive</div>
+      <div class="stat-value" id="unprod-val">00:00:00</div>
+    </div>
+    <div class="stat-box" style="border-top: 4px solid #38bdf8;">
+      <div class="stat-label">Total Time</div>
+      <div class="stat-value" id="total-val">00:00:00</div>
+    </div>
+    <div class="stat-box" style="border-top: 4px solid #f59e0b;">
+      <div class="stat-label">Score</div>
+      <div class="stat-value" id="score-val">0%</div>
+    </div>
+  </div>
+
+  <div class="charts-grid">
+    <div class="chart-container">
+      <div class="chart-title">📊 PRODUCTIVITY SPLIT</div>
+      <canvas id="pieChart"></canvas>
+    </div>
+    <div class="chart-container">
+      <div class="chart-title">📈 7-DAY TREND (HH:MM:SS)</div>
+      <canvas id="lineChart"></canvas>
+    </div>
+  </div>
+
+  <div class="website-table">
+    <div class="chart-title">📋 TOP WEBSITES</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Website</th>
+          <th>Category</th>
+          <th>Time Spent</th>
+          <th>Impact</th>
+        </tr>
+      </thead>
+      <tbody id="table-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<button class="refresh-btn" onclick="loadData()">🔄 REFRESH</button>
+
+<script>
+  const API_URL = 'http://localhost:3000';
+  let pieChart, lineChart;
+
+  function formatHHMMSS(seconds) {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    return [h, m, s].map(v => v.toString().padStart(2, '0')).join(':');
+  }
+
+  async function loadData() {
+    try {
+      const res = await fetch(`${API_URL}/summary`);
+      const data = await res.json();
+      
+      // 1. Text Stats
+      document.getElementById('prod-val').innerText = formatHHMMSS(data.overview.productive);
+      document.getElementById('unprod-val').innerText = formatHHMMSS(data.overview.unproductive);
+      document.getElementById('total-val').innerText = formatHHMMSS(data.overview.total);
+      document.getElementById('score-val').innerText = data.overview.productivityScore + '%';
+
+      // 2. Table
+      const tbody = document.getElementById('table-body');
+      tbody.innerHTML = data.websites.slice(0, 5).map(site => `
+        <tr>
+          <td style="color: #38bdf8; font-weight: bold;">${site.domain}</td>
+          <td><span class="category-badge badge-${site.category}">${site.category}</span></td>
+          <td style="font-family: monospace;">${formatHHMMSS(site.time)}</td>
+          <td style="color: #22c55e;">${((site.time/data.overview.total)*100).toFixed(1)}%</td>
+        </tr>
+      `).join('');
+
+      updateCharts(data);
+    } catch (e) { console.error("Update failed", e); }
+  }
+
+  function updateCharts(data) {
+    // PIE CHART
+    const pCtx = document.getElementById('pieChart').getContext('2d');
+    if (pieChart) pieChart.destroy();
+    pieChart = new Chart(pCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Productive', 'Unproductive', 'Neutral'],
+        datasets: [{
+          data: [data.overview.productive, data.overview.unproductive, data.overview.neutral],
+          backgroundColor: ['#16a34a', '#dc2626', '#475569'],
+          borderWidth: 0
+        }]
+      },
+      options: { 
+        maintainAspectRatio: false,
+        plugins: { 
+          legend: { labels: { color: 'white' } },
+          tooltip: { callbacks: { label: (ctx) => ` Time: ${formatHHMMSS(ctx.raw)}` } }
+        }
+      }
+    });
+
+    // LINE CHART
+    const lCtx = document.getElementById('lineChart').getContext('2d');
+    if (lineChart) lineChart.destroy();
+    lineChart = new Chart(lCtx, {
+      type: 'line',
+      data: {
+        labels: data.weekly.days.map(d => d.date.split('-').slice(1).join('/')), // MM/DD
+        datasets: [
+          { label: 'Prod', data: data.weekly.days.map(d => d.productive), borderColor: '#16a34a', tension: 0.3 },
+          { label: 'Unprod', data: data.weekly.days.map(d => d.unproductive), borderColor: '#dc2626', tension: 0.3 }
+        ]
+      },
+      options: {
+        maintainAspectRatio: false,
+        scales: {
+          y: { ticks: { color: 'white', callback: (v) => formatHHMMSS(v) }, grid: { color: '#334155' } },
+          x: { ticks: { color: 'white' }, grid: { display: false } }
+        },
+        plugins: { 
+          legend: { labels: { color: 'white' } },
+          tooltip: { callbacks: { label: (ctx) => ` ${ctx.dataset.label}: ${formatHHMMSS(ctx.raw)}` } }
+        }
+      }
+    });
+  }
+
+  loadData();
+  setInterval(loadData, 5000);
+</script>
+</body>
+</html>

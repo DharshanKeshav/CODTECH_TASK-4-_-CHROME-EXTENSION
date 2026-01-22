@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FocusPulse - Real-Time Tracking</title>
+  <style>
+    /* Base Reset & Variables */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --productive-bg: rgba(72, 187, 120, 0.2);
+      --productive-border: rgba(72, 187, 120, 0.4);
+      --unproductive-bg: rgba(245, 101, 101, 0.2);
+      --unproductive-border: rgba(245, 101, 101, 0.4);
+      --glass-bg: rgba(255, 255, 255, 0.15);
+      --glass-border: rgba(255, 255, 255, 0.2);
+    }
+
+    body {
+      width: 360px;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: linear-gradient(135deg, #432b58 0%, #1a1a2e 100%);
+      color: #fff;
+      overflow: hidden;
+    }
+
+    /* Glassmorphism Header */
+    .header {
+      background: rgba(255, 255, 255, 0.05);
+      padding: 20px;
+      text-align: center;
+      backdrop-filter: blur(12px) saturate(160%);
+      border-bottom: 1px solid var(--glass-border);
+    }
+
+    .header h1 {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .header p {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      opacity: 0.6;
+      margin-top: 4px;
+    }
+
+    .content {
+      padding: 16px;
+    }
+
+    /* Stats Grid with Monospace Timers */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+
+    .stat-card {
+      background: var(--glass-bg);
+      border-radius: 12px;
+      padding: 14px;
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--glass-border);
+      transition: transform 0.2s ease;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-2px);
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .stat-card.full {
+      grid-column: 1 / -1;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .stat-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      opacity: 0.7;
+      margin-bottom: 6px;
+    }
+
+    .stat-value {
+      font-size: 22px; /* Adjusted for HH:MM:SS fit */
+      font-weight: 700;
+      /* Tabular nums and monospace prevent the "wiggle" when seconds change */
+      font-family: 'Courier New', Courier, monospace;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .productive {
+      background: var(--productive-bg);
+      border-color: var(--productive-border);
+    }
+
+    .unproductive {
+      background: var(--unproductive-bg);
+      border-color: var(--unproductive-border);
+    }
+
+    /* Website List Scrolling Area */
+    .list-header {
+      font-size: 11px;
+      font-weight: 600;
+      opacity: 0.5;
+      margin-bottom: 8px;
+      padding-left: 4px;
+    }
+
+    .website-list {
+      max-height: 180px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    /* Custom Scrollbar */
+    .website-list::-webkit-scrollbar {
+      width: 4px;
+    }
+    .website-list::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 10px;
+    }
+
+    .website-item {
+      background: rgba(255, 255, 255, 0.08);
+      padding: 10px 12px;
+      border-radius: 10px;
+      margin-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border: 1px solid transparent;
+    }
+
+    .website-item:hover {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .website-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .website-name {
+      font-size: 13px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .category-badge {
+      font-size: 9px;
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-weight: 700;
+      text-transform: uppercase;
+      width: fit-content;
+    }
+
+    .badge-productive { background: #48bb78; color: #000; }
+    .badge-unproductive { background: #f56565; color: #fff; }
+    .badge-neutral { background: rgba(255, 255, 255, 0.3); color: #fff; }
+
+    .website-time {
+      font-size: 13px;
+      font-weight: 700;
+      font-family: 'Courier New', Courier, monospace;
+      color: #34d399; /* Mint green for the live tick */
+    }
+
+    /* Footer Buttons */
+    .footer {
+      padding: 12px 16px 20px;
+      background: rgba(0, 0, 0, 0.3);
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid var(--glass-border);
+      color: white;
+      padding: 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .btn-primary {
+      background: #fff;
+      color: #1a1a2e;
+      border: none;
+    }
+
+    .btn-primary:hover {
+      background: #e2e8f0;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>🎯 FocusPulse</h1>
+    <p>Real-Time Deep Work</p>
+  </div>
+
+  <div class="content">
+    <div class="stats-grid">
+      <div class="stat-card productive">
+        <div class="stat-label">Productive</div>
+        <div class="stat-value" id="productive-time">00:00:00</div>
+      </div>
+
+      <div class="stat-card unproductive">
+        <div class="stat-label">Distracted</div>
+        <div class="stat-value" id="unproductive-time">00:00:00</div>
+      </div>
+
+      <div class="stat-card full">
+        <div>
+          <div class="stat-label">Active Session Total</div>
+          <div class="stat-value" id="total-time">00:00:00</div>
+        </div>
+        <div id="session-icon">⏳</div>
+      </div>
+    </div>
+
+    <p class="list-header">Top Sites Today</p>
+    <div class="website-list" id="website-list">
+      </div>
+  </div>
+
+  <div class="footer">
+    <button class="btn" id="reset-btn">Reset</button>
+    <button class="btn btn-primary" id="dashboard-btn">Full Analytics</button>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
